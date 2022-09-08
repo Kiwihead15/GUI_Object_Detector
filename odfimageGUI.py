@@ -22,6 +22,7 @@ from PIL import Image, ImageTk
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
 from numpy import append
+from numpy import random
 
 # %%
 # parameters of the model
@@ -32,14 +33,21 @@ model.setInputParams(size=size, scale=1/255)
 
 # %%
 root = Tk()
-root.geometry("280x800")
+root.geometry("300x800")
 root.title("Object Detector")
-root.iconbitmap('Object-Detector-120.png')
+root.iconbitmap('favicon.ico')
 
 # Read the objects to be detected. Build a list.
 classes=[]
+colors=[]
+objects_list=Label(root,text='Objects List:')
+objects_list.grid(row=6, column=0, pady = 10)
 t = Text(root,width=15, height=20)
-objects= ['person', 'bicycle', 'car', 'motorbike', 'aeroplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'sofa', 'pottedplant', 'bed', 'diningtable', 'toilet', 'tvmonitor', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
+t.grid(row=7, column=0, pady = 5, columnspan=2)
+objects= ['All Objects', 'None', 'person', 'bicycle', 'car', 'motorbike', 'aeroplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'sofa', 'pottedplant', 'bed', 'diningtable', 'toilet', 'tvmonitor', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
+for i in range(93):
+    random_c = random.randint(256, size=3)
+    colors.append((int(random_c[0]), int(random_c[1]), int(random_c[2])))
 
 clicked = StringVar()
 clicked.set(objects[0])
@@ -49,20 +57,32 @@ drop = OptionMenu(root, clicked, *objects)
 drop.grid(row=4, column=0)
 
 
+
+
 def show():
     global classes
     global objects
-    #class_name = Label(root, text=clicked.get())
-    #class_name.grid(row=5, column=0, columnspan=2)
+
     object_chosen = clicked.get()
     if object_chosen in classes:
         response = messagebox.showinfo('Popup Info','Object already selected')
         Label(root, text=response).pack()
+    elif object_chosen == 'All Objects':
+        for object in objects:
+            if (object != 'None') & (object !='All Objects'):
+                classes.append(object)
+                t.insert(END, object + '\n')
+                t.grid(row=7, column=0, columnspan=2)
+    elif object_chosen == 'None':
+        classes = []
+        t.delete("1.0",END)
+        t.grid(row=7, column=0, columnspan=2)
+
     else:
         classes.append(object_chosen)
         t.insert(END, object_chosen + '\n')
-        t.grid(row=6, column=0, columnspan=2)
-    status_label=Label(root, text='Object added to the list')
+        t.grid(row=7, column=0, columnspan=2)
+    status_label=Label(root, text='Object added to the list',width=40)
     status_label.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
     start_btn.configure(state='normal')
 
@@ -81,9 +101,8 @@ def open_image():
     dsize = ( int(img.shape[1]*scale_percent), size[0]) # dsize
     frame = cv2.resize(img, dsize) # resize image
     cv2.imshow("Frame", frame)
-    status_label=Label(root, text='Image Selected, proceed with objects selection')
+    status_label=Label(root, text='Image Selected, proceed with objects selection',width=40)
     status_label.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
-    #start_btn.configure(state='normal')
     return 
 
 def start_detection():
@@ -93,33 +112,49 @@ def start_detection():
     (class_ids, scores, bboxes) = model.detect(frame, confThreshold=0.3, nmsThreshold=0.4) #model detection
     cv2.destroyAllWindows()
     for class_id, score, bbox in zip(class_ids, scores, bboxes):
-        class_id = int(class_id)    # need just for cv2 4.5.3
+        class_id = int(class_id) + 2   # need just for cv2 4.5.3,  +2 need it because class list have All and None element appended 
         (x, y, w , h) = bbox
         class_name = objects[class_id]
-        #color = colors[class_id] 
+        color = colors[class_id] 
+
 
         if class_name in classes:
-            cv2.putText(frame,str(class_name), (x,y-10), cv2.FONT_HERSHEY_PLAIN,2, 2)  #color
-            cv2.rectangle(frame,(x,y),(x+w,y+h),3) #color
+            cv2.putText(
+                img = frame,
+                text = str(class_name),
+                org = (x,y-10),
+                fontFace = cv2.FONT_HERSHEY_PLAIN,
+                fontScale = 1.0,
+                color = color,
+                thickness = 2)
+            #cv2.rectangle(frame,(x,y),(x+w,y+h), color = (125, 125, 255), thickness = 2) #color
+            cv2.rectangle(
+                img = frame,
+                pt1 = (x , y),
+                pt2 = (x+w , y+h),
+                color = color,
+                thickness = 1)
 
     cv2.imshow("Frame",frame)     
-    status_label=Label(root, text='                  Starting Detection                  ')
+    status_label=Label(root, text='Starting Detection',width=40)
     status_label.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
     stop_btn.configure(state='normal')
     save_btn.configure(state='normal')
     open_btn.configure(state='disable')
+    start_btn.configure(state='disable')
     return
 
 
 def stop_detection():
     global status_label 
 
-    cv2.destroyAllWindows()
-    status_label=Label(root, text='                  Detection Stopped                  ')
+    #cv2.destroyAllWindows()
+    status_label=Label(root, text='Detection Stopped',width=40)
     status_label.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
     save_btn.configure(state='normal')
-    start_btn.configure(state='normal')
+    start_btn.configure(state='disable')
     open_btn.configure(state='normal')
+    stop_btn.configure(state='disable')
     return 
 
 def save_image():
@@ -128,7 +163,7 @@ def save_image():
     image_file = asksaveasfilename( defaultextension=".jpg", filetypes=(("jpg files", "*.jpg"),("All Files", "*.*")),)
     if image_file:
         cv2.imwrite(image_file,frame)
-    status_label=Label(root, text='                  Image has been saved                  ')
+    status_label=Label(root, text='Image has been saved',width=40)
     status_label.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
     return
 
@@ -151,9 +186,9 @@ stop_btn.grid(row = 2, column = 1, padx=10, pady=10)
 
 #Button for closing the app.
 close_btn = Button(root, text="EXIT PROGRAM", bg = "red", command=close)
-close_btn.grid(row = 7, column = 1, padx=10, pady=10)
+close_btn.grid(row = 8, column = 1, padx=10, pady=10)
 
-status_label=Label(root, text='Select an image where to detect objects')
+status_label=Label(root, text='Select an image where to detect objects', width=40)
 status_label.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
 
 root.mainloop()
